@@ -1,0 +1,87 @@
+<!-- API Architecture Flow: A Step-by-Step Guide
+This document outlines the execution flow of your modular Express API, detailing how components start, handle requests, and manage errors.
+
+Phase 1: Server Startup and Initialization
+This phase ensures the application is correctly configured and the MongoDB database is connected before the server begins listening for traffic.
+
+Step 1: Load Configuration and Secrets (config/index.js)
+index.js starts the application.
+
+It imports the config/index.js file.
+
+config/index.js runs dotenv.config(), loading the PORT, MONGODB_URI, and DB_NAME secrets from your local .env file into the server's environment.
+
+Step 2: Establish Database Connection (db/index.js)
+index.js calls the asynchronous function connectToDB() (imported from db/index.js).
+
+connectToDB() establishes a persistent connection to MongoDB using the URI from the configuration.
+
+Since connectToDB is an async function, it returns a Promise.
+
+Step 3: Start Server or Handle Startup Failure
+.then() (Success): If the database connection succeeds, the code inside the .then() block executes:
+
+The toursRouter is attached using app.use("/api/tours", toursRouter).
+
+The errorHandler middleware is attached.
+
+The web server officially starts with app.listen(PORT, ...) and is ready for traffic.
+
+.catch() (Failure): If the database connection fails (e.g., wrong password/URI), the .catch() block executes:
+
+The error is logged: console.log("server not running because of this culprit :", error).
+
+The entire Node process exits with a failure code (process.exit(1)).
+
+Phase 2: Client Request Flow (e.g., POST /api/tours)
+Once the server is running, Express follows a precise path to process and respond to a client request.
+
+Step 4: Initial Middleware Processing
+A client sends a request (e.g., POST to /api/tours).
+
+The request first hits the global middleware in index.js:
+
+app.use(cors()): Handles cross-origin requests (allows external frontends to talk to the API).
+
+app.use(express.json()): If it's a POST/PATCH request, this line reads the JSON data from the request body and puts it into req.body.
+
+Step 5: Routing and Dispatch (tours.routes.js)
+The request path (/api/tours) matches the base path set in index.js: app.use("/api/tours", toursRouter).
+
+Express strips the prefix (/api/tours) and hands the remaining path (/) to the toursRouter (from routes/tours.routes.js).
+
+The Router matches the request method (POST) and the relative path (/) to the handler: router.post("/", toursController.createTour).
+
+Step 6: Controller Execution (tours.controller.js)
+The assigned function, exports.createTour (from controllers/tours.controller.js), is executed.
+
+asyncHandler Magic: The function is wrapped in asyncHandler, which automatically adds error protection.
+
+Business Logic:
+
+It retrieves the collection using getCollection("tours").
+
+It inserts the data from req.body using collection.insertOne().
+
+It sends a final response: res.status(201).json(...).
+
+Phase 3: Error Handling
+This flow is critical and ensures the server catches and responds to unexpected problems safely.
+
+Step 7: Error Initiation (asyncHandler.js)
+An error occurs anywhere in the Promise chain (e.g., database validation failure in the controller).
+
+The asyncHandler detects the error.
+
+Instead of crashing the server, the asyncHandler calls the special next(err) function. This instantly stops the current request's execution.
+
+Step 8: Error Processing (errorHandler.js)
+Express skips all remaining normal routes and middleware until it finds the function with the four arguments: errorHandler(err, req, res, next) in index.js.
+
+The errorHandler executes:
+
+It determines the HTTP status code (defaulting to 500).
+
+It prints the technical error to your console (console.error(err)).
+
+It sends a non-technical, standardized JSON response to the client, preventing them from seeing server crash details. -->
